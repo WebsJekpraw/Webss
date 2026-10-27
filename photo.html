@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SnapBooth — Fotobooth Online</title>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+<style>
+:root{--p:#ff6fb5;--v:#8b5cf6;--c:#22d3ee}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{font-family:Poppins,system-ui,sans-serif;color:#fff;min-height:100vh;background:linear-gradient(135deg,#1b1035,#3b1a5a 50%,#7a2a6e) fixed;overflow-x:hidden;padding-bottom:100px}
+#fx{position:fixed;inset:0;z-index:0;pointer-events:none}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:rgba(27,16,53,.65);backdrop-filter:blur(14px)}
+.logo{font-family:Pacifico,cursive;font-size:22px;background:linear-gradient(90deg,var(--p),var(--c));-webkit-background-clip:text;background-clip:text;color:transparent}
+nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+nav a{padding:8px 14px;border-radius:99px;color:#fff;text-decoration:none;font-size:14px;white-space:nowrap;transition:.3s}
+nav a.on,nav a:hover{background:linear-gradient(90deg,var(--p),var(--v))}
+main{position:relative;z-index:1;max-width:980px;margin:auto;padding:18px}
+.page{display:none}.page.on{display:block;animation:in .6s ease}
+@keyframes in{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.card{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:22px;padding:18px;backdrop-filter:blur(12px);margin-bottom:16px}
+.hero{text-align:center;padding:48px 8px}
+.hero h1{font-family:Pacifico,cursive;font-size:clamp(42px,10vw,78px);background:linear-gradient(90deg,var(--p),#ffd166,var(--c));-webkit-background-clip:text;background-clip:text;color:transparent;animation:fl 4s ease-in-out infinite}
+@keyframes fl{50%{transform:translateY(-8px)}}
+.hero p{margin:12px 0 24px;opacity:.85}
+.btn{display:inline-block;border:0;cursor:pointer;color:#fff;text-decoration:none;font:600 15px Poppins,sans-serif;padding:12px 26px;border-radius:99px;background:linear-gradient(90deg,var(--p),var(--v));box-shadow:0 8px 24px rgba(255,111,181,.4);transition:.3s}
+.btn:hover{transform:translateY(-3px) scale(1.04)}
+.btn.alt{background:rgba(255,255,255,.18);box-shadow:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+h2{font-family:Pacifico,cursive;font-weight:400;margin-bottom:10px}
+.scroller{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;padding:4px 2px 10px;scrollbar-width:none}
+.scroller>*{flex:none;scroll-snap-align:center}
+.chip{border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;border-radius:99px;padding:8px 16px;font:14px Poppins,sans-serif;cursor:pointer;transition:.25s}
+.chip.on{background:linear-gradient(90deg,var(--p),var(--v));transform:scale(1.07)}
+.lbl{font-size:13px;opacity:.75;margin:8px 0 2px}
+.stagewrap{position:relative;width:100%;max-width:420px;margin:0 auto 14px;aspect-ratio:3/4;border-radius:22px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#stage{width:100%;height:100%;display:block;touch-action:none}
+.flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.flash.go{animation:fs .5s}@keyframes fs{from{opacity:.95}to{opacity:0}}
+#count{position:absolute;inset:0;display:grid;place-items:center;font-size:130px;font-weight:600;text-shadow:0 0 30px var(--p);pointer-events:none}
+.ctrl{display:flex;align-items:center;justify-content:center;gap:16px;margin:6px 0 10px}
+.shutter{width:78px;height:78px;border-radius:50%;border:5px solid #fff;background:var(--p);cursor:pointer;box-shadow:0 0 24px var(--p);transition:.2s}
+.shutter:active{transform:scale(.88)}
+select{padding:10px;border-radius:12px;border:0;font:14px Poppins}
+.fcard{text-align:center;cursor:pointer;transition:.3s}.fcard:hover{transform:translateY(-6px) rotate(-1deg)}
+.fcard canvas{width:100%;border-radius:14px}
+.gcard{width:200px}.gcard img{width:100%;border-radius:14px;display:block}
+.gcard .btn{padding:7px 12px;font-size:12px;margin:6px 4px 0 0}
+#modal{position:fixed;inset:0;z-index:50;background:rgba(10,5,25,.85);display:none;place-items:center;padding:16px;overflow:auto}
+#modal.on{display:grid}
+#modal .box{text-align:center;max-width:380px;animation:in .4s}
+#modal img{width:100%;border-radius:16px;box-shadow:0 0 40px var(--p)}
+input,textarea{width:100%;padding:12px;border-radius:12px;border:0;margin-bottom:10px;font:14px Poppins}
+.wa{position:fixed;right:16px;bottom:16px;z-index:30;width:58px;height:58px;border-radius:50%;background:#25d366;display:grid;place-items:center;font-size:30px;text-decoration:none;box-shadow:0 8px 24px rgba(37,211,102,.6);animation:pu 2s infinite}
+@keyframes pu{50%{transform:scale(1.1)}}
+.player{position:fixed;left:12px;bottom:16px;z-index:30;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:99px;background:rgba(27,16,53,.8);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.25);font-size:12px;max-width:calc(100vw - 90px)}
+.player button{background:none;border:0;color:#fff;font-size:18px;cursor:pointer}
+.player input{width:60px;margin:0;padding:0}
+#toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:60;background:#fff;color:#333;padding:10px 18px;border-radius:99px;opacity:0;transition:.4s;pointer-events:none}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<header>
+  <div class="logo">SnapBooth</div>
+  <nav>
+    <a href="#beranda">Beranda</a><a href="#booth">Photobooth</a><a href="#frame">Frame</a><a href="#galeri">Galeri</a><a href="#kontak">Kontak</a>
+    <a href="#" id="fxBtn">✨ Efek</a>
+  </nav>
+</header>
+
+<main>
+  <section id="beranda" class="page">
+    <div class="hero">
+      <h1>SnapBooth</h1>
+      <p>Fotobooth online dengan frame lucu, filter wajah, dan emoticon. Abadikan momenmu! 📸</p>
+      <a class="btn" href="#booth">Mulai Foto</a> <a class="btn alt" href="#frame">Lihat Frame</a>
+    </div>
+    <div class="grid">
+      <div class="card"><h2>🖼️ 9 Frame</h2>Polaroid, neon, sakura, film, dan lainnya.</div>
+      <div class="card"><h2>🎨 11 Filter</h2>Dari hitam putih sampai neon.</div>
+      <div class="card"><h2>😎 Filter Wajah</h2>Mahkota, telinga kucing, kacamata, tanduk, dll.</div>
+      <div class="card"><h2>🎵 Musik</h2>Pemutar musik santai di pojok kiri bawah.</div>
+    </div>
+  </section>
+
+  <section id="booth" class="page">
+    <div class="stagewrap">
+      <canvas id="stage" width="720" height="960"></canvas>
+      <div class="flash" id="flash"></div><div id="count"></div>
+    </div>
+    <p id="camMsg" style="text-align:center;color:#ffd166"></p>
+    <div class="ctrl">
+      <select id="timer"><option value="0">Tanpa timer</option><option value="3" selected>Timer 3d</option><option value="5">Timer 5d</option></select>
+      <button class="shutter" id="shot" aria-label="Ambil foto"></button>
+      <button class="btn alt" id="flip">🔄 Kamera</button>
+    </div>
+    <div class="card">
+      <div class="lbl">🖼️ Frame</div><div class="scroller" id="frChips"></div>
+      <div class="lbl">🎨 Filter</div><div class="scroller" id="flChips"></div>
+      <div class="lbl">😎 Filter Wajah <span id="fdSt"></span></div><div class="scroller" id="fcChips"></div>
+      <div class="lbl">😀 Emoticon (ketuk untuk menambah, seret untuk memindah, ketuk emoji di foto untuk menghapus)</div>
+      <div class="scroller" id="emChips"></div>
+      <button class="btn alt" id="clrEm" style="margin-top:8px">Hapus semua emoji</button>
+    </div>
+  </section>
+
+  <section id="frame" class="page">
+    <h2>Pilih Frame</h2>
+    <div class="grid" id="frGrid"></div>
+  </section>
+
+  <section id="galeri" class="page">
+    <h2>Galeri Kamu</h2>
+    <div class="scroller" id="gal"></div>
+    <p id="galEmpty" style="opacity:.7">Belum ada foto. Yuk foto dulu! 📸</p>
+  </section>
+
+  <section id="kontak" class="page">
+    <div class="card">
+      <h2>Hubungi Kami</h2>
+      <p style="margin-bottom:12px">Mau pesan photobooth untuk acara? Chat kami lewat WhatsApp.</p>
+      <input id="nm" placeholder="Nama kamu">
+      <textarea id="ms" rows="4" placeholder="Pesan..."></textarea>
+      <button class="btn" id="sendWa">💬 Kirim via WhatsApp</button>
+    </div>
+  </section>
+</main>
+
+<div id="modal"><div class="box">
+  <img id="res" alt="Hasil foto">
+  <div class="ctrl" style="flex-wrap:wrap">
+    <button class="btn" id="svG">💾 Simpan ke Galeri</button>
+    <button class="btn alt" id="svD">📲 Simpan ke Perangkat</button>
+    <button class="btn alt" id="again">🔁 Ulangi</button>
+  </div>
+</div></div>
+
+<a class="wa" id="waFloat" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
+<div class="player">
+  <button id="prev">⏮</button><button id="pp">▶️</button><button id="next">⏭</button>
+  <span id="trk"></span><input type="range" id="vol" min="0" max=".6" step=".01" value=".3">
+</div>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=t=>new Promise(r=>setTimeout(r,t));
+const WA='6281234567890';  // GANTI dengan nomor WhatsApp kamu (format 62...)
+const W=720,H=960,EF='"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+$('#waFloat').href=`https://wa.me/${WA}?text=${encodeURIComponent('Halo, saya mau tanya tentang SnapBooth!')}`;
+$('#sendWa').onclick=()=>open(`https://wa.me/${WA}?text=${encodeURIComponent('Halo, saya '+($('#nm').value||'pengunjung')+'. '+$('#ms').value)}`);
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),2200)}
+
+/* ---------- Halaman ---------- */
+const PAGES=['beranda','booth','frame','galeri','kontak'];
+function route(){let id=(location.hash||'#beranda').slice(1);if(!PAGES.includes(id))id='beranda';
+  $$('.page').forEach(p=>p.classList.toggle('on',p.id===id));
+  $$('nav a[href^="#"]').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+id));
+  scrollTo({top:0,behavior:'smooth'});
+  id==='booth'?startCam():stopCam(); if(id==='galeri')renderGal();}
+addEventListener('hashchange',route);
+
+/* ---------- Data ---------- */
+const FILTERS=[['Normal','none'],['Hitam Putih','grayscale(1) contrast(1.1)'],['Sepia','sepia(.85)'],['Vintage','sepia(.4) contrast(1.1) saturate(1.3) hue-rotate(-15deg)'],['Cerah','brightness(1.12) saturate(1.5)'],['Dingin','saturate(1.1) hue-rotate(20deg) brightness(1.05)'],['Hangat','sepia(.25) saturate(1.4) hue-rotate(-10deg)'],['Dreamy','blur(1px) brightness(1.15) saturate(1.3)'],['Drama','contrast(1.5) saturate(1.2) brightness(.95)'],['Pudar','contrast(.85) brightness(1.1) saturate(.8)'],['Neon','hue-rotate(280deg) saturate(2) contrast(1.2)']];
+const FACES=[['🚫 Tanpa','none'],['🕶️ Kacamata','shades'],['👑 Mahkota','crown'],['🐱 Kucing','cat'],['🥸 Kumis','stache'],['🤡 Badut','clown'],['🥳 Topi Pesta','party'],['😇 Halo','halo'],['😈 Tanduk','devil']];
+const FR=[['Tanpa Frame',null],['Polaroid','pol'],['Cinta Hati','heart'],['Neon Glow','neon'],['Film Strip','film'],['Sakura','sakura'],['Bintang Malam','star'],['Pelangi','rain'],['Emas Elegan','gold']];
+const EMO=[...'😀😂🥰😍😎🤩🥳😜🤪😇😈🤡👻💀🤖👽🐱🐶🦄🐼🦊🐸🌈⭐🔥💖💜💯🎉🎂🎈🎁🌸🌻🍕🍦☕🎀👑'];
+let fl=0,fc='none',fr=0,EM=[];
+
+function mk(sel,items,fn,init=0){const el=$(sel);el.innerHTML='';items.forEach((t,i)=>{const b=document.createElement('button');b.className='chip'+(i===init?' on':'');b.textContent=t;b.onclick=()=>{if(init>=0){[...el.children].forEach(x=>x.classList.remove('on'));b.classList.add('on')}fn(i)};el.appendChild(b)})}
+function setFrame(i){fr=i;$$('#frChips .chip').forEach((b,j)=>b.classList.toggle('on',j===i))}
+mk('#frChips',FR.map(f=>f[0]),setFrame);
+mk('#flChips',FILTERS.map(f=>f[0]),i=>fl=i);
+mk('#fcChips',FACES.map(f=>f[0]),i=>{fc=FACES[i][1];if(fc!=='none')loadFace()});
+mk('#emChips',EMO,i=>EM.push({e:EMO[i],x:W/2+(Math.random()-.5)*200,y:H/2+(Math.random()-.5)*200,s:110}),-1);
+$('#clrEm').onclick=()=>EM=[];
+
+/* ---------- Frame ---------- */
+function bord(c,w,h,t,st){c.lineWidth=t;c.strokeStyle=st;c.strokeRect(t/2,t/2,w-t,h-t)}
+function eb(c,w,h,e,sz,gap){c.font=sz+'px '+EF;c.textAlign='center';c.textBaseline='middle';for(let x=sz/2;x<w;x+=gap){c.fillText(e,x,sz/2);c.fillText(e,x,h-sz/2)}for(let y=sz/2+gap;y<h-sz;y+=gap){c.fillText(e,sz/2,y);c.fillText(e,w-sz/2,y)}}
+function drawFrame(c,k,w,h){const u=w/720;c.save();
+  if(k==='pol'){c.fillStyle='#fff';const b=36*u;c.fillRect(0,0,w,b);c.fillRect(0,0,b,h);c.fillRect(w-b,0,b,h);c.fillRect(0,h-150*u,w,150*u);c.fillStyle='#555';c.font=`${46*u}px Pacifico,cursive`;c.textAlign='center';c.fillText('SnapBooth ♥',w/2,h-62*u)}
+  if(k==='heart'){bord(c,w,h,34*u,'#ff8fc7');eb(c,w,h,'💖',50*u,66*u)}
+  if(k==='neon'){c.shadowBlur=30*u;c.shadowColor='#ff4fd8';bord(c,w,h,14*u,'#ff4fd8');c.shadowColor='#22d3ee';c.strokeStyle='#22d3ee';c.lineWidth=8*u;c.strokeRect(34*u,34*u,w-68*u,h-68*u)}
+  if(k==='film'){c.fillStyle='#111';c.fillRect(0,0,64*u,h);c.fillRect(w-64*u,0,64*u,h);c.fillRect(0,0,w,26*u);c.fillRect(0,h-26*u,w,26*u);c.fillStyle='#eee';for(let y=20*u;y<h;y+=60*u){c.fillRect(20*u,y,24*u,34*u);c.fillRect(w-44*u,y,24*u,34*u)}}
+  if(k==='sakura'){bord(c,w,h,24*u,'#ffd1e3');eb(c,w,h,'🌸',48*u,64*u)}
+  if(k==='star'){bord(c,w,h,44*u,'#1b1035');eb(c,w,h,'✨',40*u,58*u);c.strokeStyle='#ffd166';c.lineWidth=3*u;c.strokeRect(46*u,46*u,w-92*u,h-92*u)}
+  if(k==='rain'){const g=c.createLinearGradient(0,0,w,h);['#ff4d6d','#ff9e00','#ffd166','#06d6a0','#22d3ee','#8b5cf6'].forEach((s,i)=>g.addColorStop(i/5,s));bord(c,w,h,38*u,g)}
+  if(k==='gold'){const g=c.createLinearGradient(0,0,w,h);g.addColorStop(0,'#f9e29c');g.addColorStop(.5,'#b8860b');g.addColorStop(1,'#ffe9a0');bord(c,w,h,30*u,g);c.strokeStyle=g;c.lineWidth=4*u;c.strokeRect(44*u,44*u,w-88*u,h-88*u);eb(c,w,h,'◆',14*u,w)}
+  c.restore()}
+$('#frGrid').innerHTML='';FR.forEach((f,i)=>{const d=document.createElement('div');d.className='card fcard';const cv=document.createElement('canvas');cv.width=240;cv.height=320;const c=cv.getContext('2d'),g=c.createLinearGradient(0,0,240,320);g.addColorStop(0,'#ff9ecb');g.addColorStop(1,'#8b5cf6');c.fillStyle=g;c.fillRect(0,0,240,320);c.font='90px '+EF;c.textAlign='center';c.textBaseline='middle';c.fillText('😊',120,150);if(f[1])drawFrame(c,f[1],240,320);d.appendChild(cv);d.insertAdjacentHTML('beforeend',`<p style="margin-top:8px">${f[0]}</p>`);d.onclick=()=>{setFrame(i);location.hash='#booth';toast('Frame dipilih: '+f[0])};$('#frGrid').appendChild(d)});
+
+/* ---------- Kamera ---------- */
+const vid=document.createElement('video');vid.playsInline=vid.muted=vid.autoplay=true;
+let stream=null,fm='user',mir=true;
+async function startCam(){if(stream)return;try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:fm,width:{ideal:1280},height:{ideal:960}},audio:false});vid.srcObject=stream;await vid.play();mir=fm==='user';$('#camMsg').textContent=''}catch(e){stream=null;$('#camMsg').textContent='Kamera tidak bisa diakses. Izinkan akses kamera dan buka lewat https/localhost.'}}
+function stopCam(){stream&&stream.getTracks().forEach(t=>t.stop());stream=null}
+$('#flip').onclick=()=>{fm=fm==='user'?'environment':'user';stopCam();startCam()};
+
+/* ---------- Deteksi wajah ---------- */
+const MODEL='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
+let fdReady=false,fdFail=false,tgt=null,cur=null;
+async function loadFace(){if(fdReady||fdFail)return;$('#fdSt').textContent='(memuat…)';try{await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL);fdReady=true;$('#fdSt').textContent=''}catch(e){fdFail=true;$('#fdSt').textContent='(deteksi offline, posisi tetap)'}}
+function cover(){const s=Math.max(W/vid.videoWidth,H/vid.videoHeight);return{s,dx:(W-vid.videoWidth*s)/2,dy:(H-vid.videoHeight*s)/2}}
+(async function det(){for(;;){if(fc!=='none'&&fdReady&&stream&&vid.videoWidth){try{const r=await faceapi.detectSingleFace(vid,new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:.4}));if(r){const b=r.box,{s,dx,dy}=cover();tgt={w:b.width*s,h:b.height*s,y:dy+b.y*s,x:mir?W-(dx+(b.x+b.width)*s):dx+b.x*s}}else tgt=null}catch(e){}}await sleep(90)}})();
+
+/* ---------- Render ---------- */
+const stage=$('#stage'),c=stage.getContext('2d');
+function faceFx(){if(fc==='none')return;if(!tgt&&fdFail)tgt={x:W*.25,y:H*.3,w:W*.5,h:H*.28};if(!tgt)return;
+  cur=cur||{...tgt};for(const k in cur)cur[k]+=(tgt[k]-cur[k])*.35;
+  const{x,y,w,h}=cur,cx=x+w/2;c.save();c.textAlign='center';c.textBaseline='middle';
+  if(fc==='shades'){c.font=w*1.05+'px '+EF;c.fillText('🕶️',cx,y+h*.33)}
+  if(fc==='crown'){c.font=w*.85+'px '+EF;c.fillText('👑',cx,y-h*.12)}
+  if(fc==='cat'){for(const s of[-1,1]){c.fillStyle='#333';c.beginPath();c.moveTo(cx+s*w*.5,y+h*.1);c.lineTo(cx+s*w*.42,y-h*.35);c.lineTo(cx+s*w*.12,y-h*.05);c.fill();c.fillStyle='#ff9ecb';c.beginPath();c.moveTo(cx+s*w*.44,y);c.lineTo(cx+s*w*.4,y-h*.22);c.lineTo(cx+s*w*.22,y-h*.04);c.fill();c.strokeStyle='#fff';c.lineWidth=3;c.beginPath();c.moveTo(cx+s*w*.15,y+h*.68);c.lineTo(cx+s*w*.6,y+h*.6);c.moveTo(cx+s*w*.15,y+h*.74);c.lineTo(cx+s*w*.6,y+h*.78);c.stroke()}c.fillStyle='#ff6fb5';c.beginPath();c.arc(cx,y+h*.62,w*.05,0,7);c.fill()}
+  if(fc==='stache'){c.fillStyle='#3a2418';for(const s of[-1,1]){c.beginPath();c.ellipse(cx+s*w*.14,y+h*.74,w*.17,h*.06,s*.3,0,7);c.fill()}}
+  if(fc==='clown'){c.fillStyle='#e11d48';c.beginPath();c.arc(cx,y+h*.62,w*.1,0,7);c.fill();c.fillStyle='rgba(255,255,255,.6)';c.beginPath();c.arc(cx-w*.03,y+h*.59,w*.025,0,7);c.fill()}
+  if(fc==='party'){const t=y-h*.02,g=c.createLinearGradient(cx-w*.25,t,cx+w*.1,t-h*.6);g.addColorStop(0,'#ff6fb5');g.addColorStop(1,'#8b5cf6');c.fillStyle=g;c.beginPath();c.moveTo(cx-w*.28,t);c.lineTo(cx+w*.28,t);c.lineTo(cx,t-h*.65);c.fill();c.fillStyle='#ffd166';c.beginPath();c.arc(cx,t-h*.65,w*.06,0,7);c.fill()}
+  if(fc==='halo'){c.shadowColor='#ffd166';c.shadowBlur=25;c.strokeStyle='#ffd166';c.lineWidth=w*.05;c.beginPath();c.ellipse(cx,y-h*.2,w*.3,h*.07,0,0,7);c.stroke()}
+  if(fc==='devil'){c.fillStyle='#e11d48';for(const s of[-1,1]){c.beginPath();c.moveTo(cx+s*w*.45,y+h*.05);c.quadraticCurveTo(cx+s*w*.62,y-h*.2,cx+s*w*.4,y-h*.42);c.quadraticCurveTo(cx+s*w*.34,y-h*.15,cx+s*w*.2,y-h*.02);c.fill()}}
+  c.restore()}
+(function draw(){
+  c.clearRect(0,0,W,H);
+  if(stream&&vid.videoWidth){const{s,dx,dy}=cover();c.save();c.filter=FILTERS[fl][1];if(mir){c.translate(W,0);c.scale(-1,1)}c.drawImage(vid,dx,dy,vid.videoWidth*s,vid.videoHeight*s);c.restore()}
+  else{const g=c.createLinearGradient(0,0,W,H);g.addColorStop(0,'#ff6fb5');g.addColorStop(1,'#8b5cf6');c.fillStyle=g;c.fillRect(0,0,W,H);c.fillStyle='#fff';c.font='40px Poppins,sans-serif';c.textAlign='center';c.fillText('Menunggu kamera… 📷',W/2,H/2)}
+  faceFx();
+  c.textAlign='center';c.textBaseline='middle';EM.forEach(e=>{c.font=e.s+'px '+EF;c.fillText(e.e,e.x,e.y)});
+  if(FR[fr][1])drawFrame(c,FR[fr][1],W,H);
+  requestAnimationFrame(draw)})();
+
+/* ---------- Seret emoji ---------- */
+let drag=null,moved=false;
+const pt=e=>{const r=stage.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}};
+stage.onpointerdown=e=>{const p=pt(e);drag=[...EM].reverse().find(m=>Math.hypot(m.x-p.x,m.y-p.y)<m.s*.6)||null;moved=false;if(drag)stage.setPointerCapture(e.pointerId)};
+stage.onpointermove=e=>{if(!drag)return;const p=pt(e);moved=true;drag.x=p.x;drag.y=p.y};
+stage.onpointerup=()=>{if(drag&&!moved)EM=EM.filter(m=>m!==drag);drag=null};
+
+/* ---------- Ambil foto ---------- */
+let last='';
+$('#shot').onclick=async()=>{if(!stream)return toast('Kamera belum aktif');A();
+  for(let i=+$('#timer').value;i>0;i--){$('#count').textContent=i;sfx(660);await sleep(1000)}
+  $('#count').textContent='';sfx(1000);const f=$('#flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');
+  last=stage.toDataURL('image/jpeg',.92);burst(innerWidth/2,innerHeight/2);$('#res').src=last;$('#modal').classList.add('on')};
+$('#again').onclick=()=>$('#modal').classList.remove('on');
+$('#svG').onclick=()=>{saveG(last);toast('Tersimpan di galeri ✅')};
+$('#svD').onclick=()=>share(last);
+const G=()=>{try{return JSON.parse(localStorage.snapbooth||'[]')}catch(e){return[]}};
+function saveG(u){const a=G();a.unshift(u);try{localStorage.snapbooth=JSON.stringify(a.slice(0,12))}catch(e){toast('Penyimpanan penuh, hapus beberapa foto')}}
+function dl(u){const a=document.createElement('a');a.href=u;a.download='snapbooth-'+Date.now()+'.jpg';a.click()}
+async function share(u){try{const b=await(await fetch(u)).blob(),f=new File([b],'snapbooth.jpg',{type:'image/jpeg'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}}catch(e){}dl(u)}
+function renderGal(){const a=G(),el=$('#gal');el.innerHTML='';$('#galEmpty').style.display=a.length?'none':'block';
+  a.forEach((u,i)=>{const d=document.createElement('div');d.className='card gcard';d.innerHTML=`<img src="${u}" alt="Foto ${i+1}"><button class="btn">📲 Simpan</button><button class="btn alt">🗑️</button>`;const[b1,b2]=d.querySelectorAll('button');b1.onclick=()=>share(u);b2.onclick=()=>{const x=G();x.splice(i,1);localStorage.snapbooth=JSON.stringify(x);renderGal()};el.appendChild(d)})}
+$$('.scroller').forEach(s=>s.addEventListener('wheel',e=>{if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();s.scrollBy({left:e.deltaY*2,behavior:'smooth'})}},{passive:false}));
+
+/* ---------- Musik (dibuat dengan WebAudio, tanpa file) ---------- */
+let ac,mg,ti=0,st=0,iv,on=false;
+const TR=[{n:'🌅 Lo-fi Sore',b:76,w:'triangle',r:57,p:[0,3,7,10,12,10,7,3,5,8,12,15,12,8,5,3]},{n:'🎉 Pop Ceria',b:116,w:'square',r:60,p:[0,4,7,12,7,4,0,4,2,5,9,14,9,5,2,5]},{n:'🌙 Dreamy Night',b:62,w:'sine',r:52,p:[0,7,12,16,19,16,12,7,3,10,15,19,22,19,15,10]}];
+const hz=n=>440*2**((n-69)/12);
+function A(){if(!ac){ac=new(window.AudioContext||webkitAudioContext)();mg=ac.createGain();mg.gain.value=$('#vol').value;mg.connect(ac.destination)}if(ac.state==='suspended')ac.resume()}
+function tone(f,t0,d,type,v,dest){const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(v,t0+.02);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.connect(g);g.connect(dest);o.start(t0);o.stop(t0+d+.05)}
+function sfx(f){A();tone(f,ac.currentTime,.15,'sine',.25,ac.destination)}
+function tick(){const t=TR[ti],n=ac.currentTime;tone(hz(t.r+t.p[st%16]+12),n,.5,t.w,t.w==='square'?.05:.15,mg);if(st%4===0)tone(hz(t.r-12+(st%8?5:0)),n,.9,'sine',.25,mg);st++}
+function ui(){$('#pp').textContent=on?'⏸️':'▶️';$('#trk').textContent=TR[ti].n}
+function play(){A();clearInterval(iv);iv=setInterval(tick,30000/TR[ti].b);on=true;ui()}
+function pause(){clearInterval(iv);on=false;ui()}
+$('#pp').onclick=()=>on?pause():play();
+$('#next').onclick=()=>{ti=(ti+1)%TR.length;st=0;on?play():ui()};
+$('#prev').onclick=()=>{ti=(ti+TR.length-1)%TR.length;st=0;on?play():ui()};
+$('#vol').oninput=e=>{if(mg)mg.gain.value=e.target.value};ui();
+
+/* ---------- Efek partikel ---------- */
+const fx=$('#fx'),f=fx.getContext('2d');let P=[],FXON=true;
+const rs=()=>{fx.width=innerWidth;fx.height=innerHeight};rs();addEventListener('resize',rs);
+const PE=['💖','✨','🌸','⭐','💜','🫧'];
+const add=(x,y,vx,vy,e,s,l=9)=>P.push({x,y,vx,vy,e,s,l,r:Math.random()*6});
+function burst(x,y){for(let i=0;i<40;i++){const a=Math.random()*6.28,v=3+Math.random()*7;add(x,y,Math.cos(a)*v,Math.sin(a)*v-4,PE[i%6],16+Math.random()*18,1.5)}}
+setInterval(()=>{if(FXON&&P.length<40)add(Math.random()*fx.width,-30,Math.random()-.5,1+Math.random()*1.5,PE[Math.random()*6|0],14+Math.random()*14)},350);
+addEventListener('pointermove',e=>{if(FXON&&Math.random()<.25)add(e.clientX,e.clientY,(Math.random()-.5)*2,Math.random()*2,'✨',12,.6)});
+$('#fxBtn').onclick=e=>{e.preventDefault();FXON=!FXON;toast('Efek '+(FXON?'aktif':'mati'))};
+(function loop(){f.clearRect(0,0,fx.width,fx.height);P=P.filter(p=>p.y<fx.height+40&&p.l>0);
+  P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=.03;if(p.l<2){p.vy+=.18;p.l-=.012}f.globalAlpha=Math.min(1,p.l);f.font=p.s+'px '+EF;f.fillText(p.e,p.x+Math.sin(p.r)*8,p.y)});
+  f.globalAlpha=1;requestAnimationFrame(loop)})();
+
+route();
+</script>
+</body>
+</html>
